@@ -1,9 +1,27 @@
-#include <QCoreApplication>
+//#include <QCoreApplication>
+
+#include <unistd.h>
+#include <stdio.h>
+
 #include <Python.h>
 
 int main(int argc, char *argv[])
 {
-    QCoreApplication a(argc, argv);
+    //QCoreApplication a(argc, argv);
+
+    char cwd[1024];
+    char path[1024];
+
+    if (getcwd(cwd, sizeof(cwd)) != NULL) {
+        sprintf(path, "sys.path.append(\"%s\")", cwd);
+        printf("Path: %s\n", path);
+    }
+    else {
+        perror("getcwd() error");
+        return 0;
+    }
+
+
 
     PyObject *pName, *pModule, *pDict, *pFunc, *pValue;
 
@@ -15,6 +33,9 @@ int main(int argc, char *argv[])
 
     // Initialize the Python Interpreter
     Py_Initialize();
+
+    PyRun_SimpleString("import sys");
+    PyRun_SimpleString(path);
 
     // Build the name object
     pName = PyString_FromString(argv[1]);
@@ -30,8 +51,18 @@ int main(int argc, char *argv[])
 
     if (PyCallable_Check(pFunc))
     {
-        PyObject_CallObject(pFunc, NULL);
+        pValue = PyObject_CallObject(pFunc, NULL);
     } else
+    {
+        PyErr_Print();
+    }
+
+    if (pValue != NULL)
+    {
+        printf("Return of call : %d\n", PyInt_AsLong(pValue));
+        Py_DECREF(pValue);
+    }
+    else
     {
         PyErr_Print();
     }
@@ -43,5 +74,7 @@ int main(int argc, char *argv[])
     // Finish the Python Interpreter
     Py_Finalize();
 
-    return a.exec();
+    return 0;
+
+    //return a.exec();
 }
