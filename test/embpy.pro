@@ -14,14 +14,16 @@ CONFIG   -= app_bundle
 
 TEMPLATE = app
 
-INCLUDEPATH += /usr/include/python2.7 \
+unix:INCLUDEPATH += /usr/include/python2.7 \
     -I/usr/include/x86_64-linux-gnu/python2.7
+win32:INCLUDEPATH += C:\Python27\include
 
-CCFLAG += -fno-strict-aliasing \
+unix:CCFLAG += -fno-strict-aliasing \
     -D_FORTIFY_SOURCE=2 \
     -g -fstack-protector-strong -Wformat -Werror=format-security  -DNDEBUG -g -fwrapv -O2 -Wall -Wstrict-prototypes
 
-LIBS += -lpython2.7 -lpthread -ldl  -lutil -lm
+unix:LIBS += -lpython2.7 -lpthread -ldl  -lutil -lm
+win32:LIBS += C:\Python27\libs\python27.lib
 
 SOURCES += main.cpp
 
