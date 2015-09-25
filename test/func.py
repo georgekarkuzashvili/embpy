@@ -5,3 +5,8 @@ def multiply():
     c = 12345*6789
     print 'The result of 12345 x 6789 :', c
     return c
+
+def multiply2(a, b):
+    c = a*b
+    print 'The result of', a, 'x', b, ':', c
+    return c

@@ -5,12 +5,12 @@
 
 #include <Python.h>
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
     //QCoreApplication a(argc, argv);
 
     char cwd[1024];
     char path[1024];
+    int arg[2];
 
     if (getcwd(cwd, sizeof(cwd)) != NULL) {
         sprintf(path, "sys.path.append(\"%s\")", cwd);
@@ -21,12 +21,9 @@ int main(int argc, char *argv[])
         return 0;
     }
 
+    PyObject *pName, *pModule, *pDict, *pFunc, *pValue, *pArgs;
 
-
-    PyObject *pName, *pModule, *pDict, *pFunc, *pValue;
-
-    if (argc < 3)
-    {
+    if (argc < 4) {
         printf("Usage: exe_name python_source function_name\n");
         return 1;
     }
@@ -48,23 +45,42 @@ int main(int argc, char *argv[])
 
     // pFunc is also a borrowed reference
     pFunc = PyDict_GetItemString(pDict, argv[2]);
-
-    if (PyCallable_Check(pFunc))
-    {
-        pValue = PyObject_CallObject(pFunc, NULL);
-    } else
-    {
+    if (!pFunc) {
         PyErr_Print();
+        return 1;
     }
 
-    if (pValue != NULL)
-    {
-        printf("Return of call : %d\n", PyInt_AsLong(pValue));
-        Py_DECREF(pValue);
-    }
-    else
-    {
-        PyErr_Print();
+    if (PyCallable_Check(pFunc)) {
+        // Prepare the argument list for the call
+        if( argc > 3 ) {
+            pArgs = PyTuple_New(argc - 3);
+            for (int i = 0; i < argc - 3; i++) {
+                pValue = PyInt_FromLong(atoi(argv[i + 3]));
+                if (!pValue) {
+                    PyErr_Print();
+                    return 1;
+                }
+                PyTuple_SetItem(pArgs, i, pValue);
+            }
+
+            pValue = PyObject_CallObject(pFunc, pArgs);
+
+            if (pArgs != NULL) {
+               Py_DECREF(pArgs);
+            }
+        }
+        else {
+           pValue = PyObject_CallObject(pFunc, NULL);
+        }
+
+        if (pValue != NULL) {
+            printf("Return of call : %d\n", PyInt_AsLong(pValue));
+            Py_DECREF(pValue);
+        }
+        else {
+           PyErr_Print();
+        }
+
     }
 
     // Clean up
