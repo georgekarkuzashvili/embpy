@@ -1,16 +1,22 @@
-//#include <QCoreApplication>
+#include <QtCore>
+#include <QCoreApplication>
+#include <QTimer>
 
 #include <unistd.h>
 #include <stdio.h>
 
 #include <Python.h>
 
-int main(int argc, char *argv[]) {
-    //QCoreApplication a(argc, argv);
+#include "main.h"
+
+void Task::run() {
 
     char cwd[1024];
     char path[1024];
-    int arg[2];
+    int argc;
+
+    QStringList argv = QCoreApplication::arguments();
+    argc = argv.size();
 
     if (getcwd(cwd, sizeof(cwd)) != NULL) {
         sprintf(path, "sys.path.append(\"%s\")", cwd);
@@ -18,14 +24,14 @@ int main(int argc, char *argv[]) {
     }
     else {
         perror("getcwd() error");
-        return 0;
+        emit finished();
     }
 
     PyObject *pName, *pModule, *pDict, *pFunc, *pValue, *pArgs;
 
     if (argc < 4) {
         printf("Usage: exe_name python_source function_name\n");
-        return 1;
+        emit finished();
     }
 
     // Initialize the Python Interpreter
@@ -35,7 +41,7 @@ int main(int argc, char *argv[]) {
     PyRun_SimpleString(path);
 
     // Build the name object
-    pName = PyString_FromString(argv[1]);
+    pName = PyString_FromString(argv[1].toUtf8().data());
 
     // Load the module object
     pModule = PyImport_Import(pName);
@@ -44,10 +50,10 @@ int main(int argc, char *argv[]) {
     pDict = PyModule_GetDict(pModule);
 
     // pFunc is also a borrowed reference
-    pFunc = PyDict_GetItemString(pDict, argv[2]);
+    pFunc = PyDict_GetItemString(pDict, argv[2].toUtf8().data());
     if (!pFunc) {
         PyErr_Print();
-        return 1;
+        emit finished();
     }
 
     if (PyCallable_Check(pFunc)) {
@@ -55,10 +61,10 @@ int main(int argc, char *argv[]) {
         if( argc > 3 ) {
             pArgs = PyTuple_New(argc - 3);
             for (int i = 0; i < argc - 3; i++) {
-                pValue = PyInt_FromLong(atoi(argv[i + 3]));
+                pValue = PyInt_FromLong(atoi(argv[i + 3].toUtf8().data()));
                 if (!pValue) {
                     PyErr_Print();
-                    return 1;
+                    emit finished();
                 }
                 PyTuple_SetItem(pArgs, i, pValue);
             }
@@ -90,7 +96,16 @@ int main(int argc, char *argv[]) {
     // Finish the Python Interpreter
     Py_Finalize();
 
-    return 0;
+    emit finished();
+}
 
-    //return a.exec();
+
+int main(int argc, char *argv[]) {
+    QCoreApplication a(argc, argv);
+
+    Task *task = new Task(&a);
+    QObject::connect(task, SIGNAL(finished()), &a, SLOT(quit()));
+    QTimer::singleShot(0, task, SLOT(run()));
+
+    return a.exec();
 }

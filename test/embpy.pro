@@ -29,3 +29,8 @@ SOURCES += main.cpp
 
 OTHER_FILES += \
     func.py
+
+HEADERS += \
+    main.h
+
+
